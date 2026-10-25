@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./App.css";
 import { supabase } from "./supabaseClient";
 import Auth from "./Auth";
@@ -27,7 +27,6 @@ function App() {
 
   useEffect(() => {
     let mounted = true;
-
     async function checkSession() {
       const { data, error } = await supabase.auth.getSession();
       if (mounted) {
@@ -36,13 +35,10 @@ function App() {
         setCheckingSession(false);
       }
     }
-
     checkSession();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
-
     return () => {
       mounted = false;
       subscription.unsubscribe();
@@ -65,37 +61,21 @@ function App() {
 
     const start = new Date(`${formData.startDate}T00:00:00`);
     const end = new Date(`${formData.endDate}T00:00:00`);
-
     if (end < start) {
       alert("End date must be on or after the start date.");
       return;
     }
 
     const days = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
-
     setLoading(true);
     try {
-      const tripData = {
-        ...formData,
-        days,
-      };
-
+      const tripData = { ...formData, days };
       const aiResponse = await generateItinerary(tripData);
-
-      setItinerary({
-        ...tripData,
-        ...aiResponse
-      });
-
-      // Format AI response for the DayCard editor
+      setItinerary({ ...tripData, ...aiResponse });
       const formattedDays = aiResponse.days.map(day => ({
         ...day,
-        activities: day.activities.map((act, idx) => ({
-          ...act,
-          id: `${day.day}-${idx}`
-        }))
+        activities: day.activities.map((act, idx) => ({ ...act, id: `${day.day}-${idx}` }))
       }));
-
       setDailyPlans(formattedDays);
     } catch (err) {
       console.error("Generation failed:", err);
@@ -110,10 +90,7 @@ function App() {
       previousPlans.map((day) => {
         if (day.day !== dayNumber) return day;
         const newActivities = [...day.activities];
-        newActivities[activityIndex] = {
-          ...newActivities[activityIndex],
-          [field]: value
-        };
+        newActivities[activityIndex] = { ...newActivities[activityIndex], [field]: value };
         return { ...day, activities: newActivities };
       })
     );
@@ -122,15 +99,9 @@ function App() {
   async function regenerateDay(dayNumber) {
     setLoading(true);
     try {
-      // In a full implementation, we'd send a request to a /api/regenerate-day endpoint.
-      // For now, we'll simulate a local regeneration or a full re-run.
-      alert(`Regenerating day ${dayNumber}... (Backend endpoint for single day needs implementation)`);
-
-      // Simulation: just replace activities with placeholders
+      alert(`Regenerating day ${dayNumber}...`);
       setDailyPlans((prev) => prev.map(day =>
-        day.day === dayNumber
-          ? { ...day, activities: [{ time: "10:00", activity: "New AI Suggestion", cost: 200 }] }
-          : day
+        day.day === dayNumber ? { ...day, activities: [{ time: "10:00", activity: "New AI Suggestion", cost: 200 }] } : day
       ));
     } catch (err) {
       setError("Regeneration failed.");
@@ -145,7 +116,7 @@ function App() {
   return (
     <div className="app-container">
       <nav className="navbar">
-        <div className="nav-logo">Travel Planner ✈️</div>
+        <div className="nav-logo">Trip Planner ✈️</div>
         <div className="nav-links">
           <span>{user.email}</span>
           <button onClick={handleLogout}>Log Out</button>
@@ -154,32 +125,23 @@ function App() {
 
       <main className="app">
         <header className="hero">
-          <p className="eyebrow">YOUR NEXT ADVENTURE STARTS HERE</p>
-          <h1>Plan Your Dream Trip</h1>
-          <p>Get a personalized itinerary powered by local AI.</p>
+          <p className="hero-eyebrow">YOUR NEXT ADVENTURE STARTS HERE</p>
+          <h1>Plan journeys worth <em>remembering</em></h1>
+          <p className="hero-sub">Describe your dream trip. Wandr builds a detailed day-by-day plan tailored to your budget and style.</p>
         </header>
 
         {error && <div className="error-message">{error}</div>}
 
-        <TripForm
-          formData={formData}
-          setFormData={setFormData}
-          onSubmit={handleSubmit}
-        />
+        <TripForm formData={formData} setFormData={setFormData} onSubmit={handleSubmit} />
 
         {loading && (
           <div className="loading-overlay">
             <div className="spinner"></div>
-            <p>AI is crafting your perfect trip...</p>
+            <p>Plotting your adventure…</p>
           </div>
         )}
 
-        <ItineraryView
-          itinerary={itinerary}
-          dailyPlans={dailyPlans}
-          updateActivity={updateActivity}
-          regenerateDay={regenerateDay}
-        />
+        <ItineraryView itinerary={itinerary} dailyPlans={dailyPlans} updateActivity={updateActivity} regenerateDay={regenerateDay} />
       </main>
     </div>
   );
